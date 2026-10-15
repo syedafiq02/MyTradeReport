@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="color-scheme" content="dark">
+  <title>Sign in · MT5 Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="login-page">
+  <main class="login-card">
+    <div class="login-brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M4 17l5-5 4 4 7-8"/><path d="M15 8h5v5"/></svg>
+      </span>
+      <span class="brand-name">MT5 Report<small>Live dashboard</small></span>
+    </div>
+    <h1>Sign in</h1>
+    <p>Personal, read-only, local access.</p>
+    {% if demo %}<p class="badge badge-demo">DEMO MODE</p>{% endif %}
+    <form method="post" action="{{ url_for('login') }}" autocomplete="off">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label for="password">Dashboard password</label>
+      <input id="password" name="password" type="password" required autofocus maxlength="256"
+             autocomplete="current-password">
+      {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+      <button type="submit" class="btn btn-primary">Sign in</button>
+    </form>
+    <p class="login-hint">This is the dashboard password from your <code>.env</code> file —
+      never your MT5 trading password.</p>
+  </main>
+</body>
+</html>

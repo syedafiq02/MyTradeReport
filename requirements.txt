@@ -1,0 +1,3 @@
+Flask>=3.0,<4
+# Official MetaTrader 5 package (Windows only; needs the MT5 desktop terminal installed)
+MetaTrader5>=5.0.45; sys_platform == "win32"

@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="color-scheme" content="dark">
+  <title>{% if demo %}DEMO · {% endif %}MT5 Live Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="{{ url_for('static', filename='js/dashboard.js') }}" defer></script>
+</head>
+<body class="app is-loading" data-view="general" data-poll-ms="{{ poll_ms }}" data-history-ms="{{ history_ms }}" data-demo="{{ '1' if demo else '0' }}">
+{% if demo %}
+<div class="demo-banner" role="note">
+  <strong>DEMO MODE</strong> — all figures below are synthetic sample data, not a real trading account.
+</div>
+{% endif %}
+
+<!-- Top application bar -->
+<header class="appbar">
+  <div class="appbar-brand">
+    <span class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M4 17l5-5 4 4 7-8"/><path d="M15 8h5v5"/></svg>
+    </span>
+    <span class="brand-name">MT5 Report</span>
+  </div>
+  <div class="appbar-right">
+    <div class="status" id="status" data-state="offline">
+      <span class="status-dot" aria-hidden="true"></span>
+      <span class="status-label" id="status-label">Connecting…</span>
+    </div>
+    <span class="appbar-divider" aria-hidden="true"></span>
+    <div class="account-chip">
+      <span class="account-avatar" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>
+      </span>
+      <div class="account-chip-text">
+        <strong id="account-login">—</strong>
+        <span id="account-ident">Account —</span>
+      </div>
+    </div>
+    {% if auth_enabled %}
+    <form method="post" action="{{ url_for('logout') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button type="submit" class="icon-btn" title="Sign out" aria-label="Sign out">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 16l-4-4 4-4"/><path d="M6 12h10"/></svg>
+      </button>
+    </form>
+    {% endif %}
+  </div>
+</header>
+
+<div class="layout">
+  <!-- Icon sidebar -->
+  <nav class="rail" aria-label="Report sections">
+    <div class="rail-group">
+      <a class="rail-link active" href="#overview" title="Account summary" aria-current="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>
+        <span class="sr-only">Account summary</span>
+      </a>
+      <a class="rail-link" href="#history" title="Equity &amp; balance charts">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4v16h16"/><path d="M8 15l3.5-4 3 2.5L20 7"/></svg>
+        <span class="sr-only">Equity &amp; balance charts</span>
+      </a>
+      <a class="rail-link" href="#positions" title="Trading activity &amp; open positions">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg>
+        <span class="sr-only">Trading activity &amp; open positions</span>
+      </a>
+      <a class="rail-link" href="#performance" title="Profit &amp; loss">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+        <span class="sr-only">Profit &amp; loss</span>
+      </a>
+      <a class="rail-link" href="#statistics" title="Performance statistics">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+        <span class="sr-only">Performance statistics</span>
+      </a>
+      <a class="rail-link" href="#trades" title="Closed trade history">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg>
+        <span class="sr-only">Closed trade history</span>
+      </a>
+      <a class="rail-link" href="#sync" title="Synchronization">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 20v-4h-4"/></svg>
+        <span class="sr-only">Synchronization</span>
+      </a>
+    </div>
+    <div class="rail-group rail-foot">
+      <span class="rail-info" title="Read-only · local only" tabindex="0">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+        <span class="sr-only">Read-only · local only</span>
+      </span>
+      <span class="rail-info" title="Times shown in Malaysia time (UTC+8)" tabindex="0">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+        <span class="sr-only">Times shown in Malaysia time (UTC+8)</span>
+      </span>
+    </div>
+  </nav>
+
+  <main class="page">
+    <!-- Page header -->
+    <div class="page-head">
+      <div class="page-title">
+        <span class="page-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M9 15v2M12 12v5M15 9v8"/></svg>
+        </span>
+        <div>
+          <h1 id="greeting">Trading report</h1>
+          <p>Insights into your MT5 account performance<span class="page-meta" id="account-meta"></span></p>
+        </div>
+      </div>
+      <div class="page-actions">
+        {% if demo %}<span class="badge badge-demo">Demo data</span>{% endif %}
+        <span class="updated" id="status-time"></span>
+      </div>
+    </div>
+
+    <!-- Report tabs (filter which report sections are shown) -->
+    <div class="tabs" role="group" aria-label="Report view" id="views">
+      <button type="button" data-view="general" class="active" aria-pressed="true"><span class="tab-dot" aria-hidden="true"></span>General Report</button>
+      <button type="button" data-view="performance" aria-pressed="false"><span class="tab-dot" aria-hidden="true"></span>Performance Report</button>
+      <button type="button" data-view="trades" aria-pressed="false"><span class="tab-dot" aria-hidden="true"></span>Trade Report</button>
+      <button type="button" data-view="sync" aria-pressed="false"><span class="tab-dot" aria-hidden="true"></span>Sync Status</button>
+    </div>
+
+    <div class="alert" id="alert" role="status" hidden></div>
+
+    <div class="report-grid">
+      <!-- Account summary (reference: "Fleet Performance Summary") -->
+      <section class="card summary" id="overview" data-views="general" aria-labelledby="h-account">
+        <div class="card-head">
+          <h2 id="h-account">Account Summary</h2>
+          <span class="card-tag" id="account-type"></span>
+        </div>
+        <div class="summary-stats" id="account-cards">
+          <div class="summary-stat">
+            <span class="ring-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="6" width="17" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M7 9.5v.01M17 14.5v.01"/></svg></span>
+            <span class="label">Balance</span>
+            <span class="value" data-field="balance">—</span>
+            <span class="sub" id="sub-balance"></span>
+          </div>
+          <div class="summary-stat">
+            <span class="ring-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19h16"/><path d="M5 15l4-4 3 3 7-7"/></svg></span>
+            <span class="label">Equity</span>
+            <span class="value" data-field="equity">—</span>
+            <span class="sub" id="sub-equity"></span>
+          </div>
+          <div class="summary-stat">
+            <span class="ring-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 7l10 10"/><path d="M17 7v10H7"/></svg></span>
+            <span class="label">Floating P/L</span>
+            <span class="value" data-field="floating">—</span>
+            <span class="sub" id="sub-floating"></span>
+          </div>
+        </div>
+        <p class="stale-note" id="stale-note" hidden>Showing last known values — data is not live.</p>
+      </section>
+
+      <!-- Equity / balance chart (reference: "Open Load") -->
+      <section class="card chart-card" id="history" data-views="general performance" aria-labelledby="h-charts">
+        <div class="card-head">
+          <div class="chart-switch" role="group" aria-label="Chart series" id="series">
+            <h2 id="h-charts" class="sr-only">Equity and balance history</h2>
+            <button type="button" data-series="equity" class="active" aria-pressed="true">Equity</button>
+            <button type="button" data-series="balance" aria-pressed="false">Balance</button>
+          </div>
+          <div class="segmented" role="group" aria-label="Chart time range" id="range">
+            <button type="button" data-range="24h">24H</button>
+            <button type="button" data-range="7d" class="active">7D</button>
+            <button type="button" data-range="30d">30D</button>
+            <button type="button" data-range="90d">90D</button>
+            <button type="button" data-range="all">All</button>
+          </div>
+        </div>
+        <div class="chart-panel" data-panel="equity">
+          <div class="chart-lead">
+            <div>
+              <strong class="lead-value" id="equity-latest">—</strong>
+              <span class="lead-sub">Latest equity snapshot in range</span>
+            </div>
+            <p class="chart-note" id="equity-note">Equity snapshots only start accumulating once this
+              app is running. No earlier equity history is shown or invented.</p>
+          </div>
+          <div class="chart-wrap"><canvas id="chart-equity" role="img" aria-label="Equity history chart"></canvas>
+            <div class="chart-tip" hidden></div></div>
+        </div>
+        <div class="chart-panel" data-panel="balance" hidden>
+          <div class="chart-lead">
+            <div>
+              <strong class="lead-value" id="balance-latest">—</strong>
+              <span class="lead-sub">Balance from MT5 deal history</span>
+            </div>
+            <p class="chart-note" id="balance-note"></p>
+          </div>
+          <div class="chart-wrap"><canvas id="chart-balance" role="img" aria-label="Balance history chart"></canvas>
+            <div class="chart-tip" hidden></div></div>
+        </div>
+      </section>
+
+      <!-- Trading activity + open positions (reference: "Driver Overview" + "Top Delivery") -->
+      <section class="card activity" id="positions" data-views="general performance trades" aria-labelledby="h-activity">
+        <div class="card-head"><h2 id="h-activity">Trading Activity</h2></div>
+        <div class="activity-top">
+          <div>
+            <strong class="lead-value" id="act-total">—</strong>
+            <span class="lead-link">Closed trades in synced history</span>
+          </div>
+          <p class="activity-side" id="act-side"></p>
+        </div>
+        <div class="split-bar" id="act-bar" role="img" aria-label="Winning versus losing trades"></div>
+        <ul class="split-legend" id="act-legend"></ul>
+
+        <div class="subhead">
+          <h3>Open positions <span class="count" id="positions-count"></span></h3>
+          <a class="more-link" href="#trades" data-goto="trades">Trade history <span aria-hidden="true">»</span></a>
+        </div>
+        <ul class="position-list" id="positions-body">
+          <li class="empty">No data yet.</li>
+        </ul>
+      </section>
+
+      <!-- Profit & loss (reference: "Loads By Customer") -->
+      <section class="card pnl" id="performance" data-views="general performance" aria-labelledby="h-perf">
+        <div class="card-head"><h2 id="h-perf">Profit &amp; Loss</h2></div>
+        <div class="highlight">
+          <div>
+            <strong class="lead-value" id="pnl-net">—</strong>
+            <span class="lead-sub">Net trading profit <span id="pnl-net-tag"></span></span>
+          </div>
+          <p class="highlight-side" id="pnl-side"></p>
+        </div>
+        <div class="bars" id="pnl-bars"><p class="empty">Waiting for deal history…</p></div>
+        <div class="bars-axis" aria-hidden="true"><span>0</span><span id="pnl-axis-max"></span></div>
+      </section>
+
+      <!-- Growth & margin (reference: "Account Payable") -->
+      <section class="card growth" id="growth" data-views="general performance" aria-labelledby="h-growth">
+        <div class="card-head"><h2 id="h-growth">Growth &amp; Margin</h2></div>
+        <div class="growth-head">
+          <span class="check-box" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 17l5-5 4 4 7-8"/></svg></span>
+          <div>
+            <strong class="lead-value" id="growth-value">—</strong>
+            <span class="lead-sub" id="growth-sub">Account growth</span>
+          </div>
+        </div>
+        <p class="info-line" id="growth-info">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8v.01"/></svg>
+          <span id="growth-info-text">Waiting for deal history…</span>
+        </p>
+        <div class="donut-wrap">
+          <svg class="donut" viewBox="0 0 120 120" id="margin-donut" role="img" aria-label="Margin versus free margin">
+            <circle class="donut-track" cx="60" cy="60" r="48"/>
+            <circle class="donut-free" cx="60" cy="60" r="48" pathLength="100" stroke-dasharray="0 100"/>
+            <circle class="donut-used" cx="60" cy="60" r="48" pathLength="100" stroke-dasharray="0 100"/>
+          </svg>
+          <div class="donut-center">
+            <strong data-field="margin_level">—</strong>
+            <span>Margin level</span>
+          </div>
+        </div>
+        <ul class="donut-legend">
+          <li><i class="key key-used" aria-hidden="true"></i>Margin <b data-field="margin">—</b></li>
+          <li><i class="key key-free" aria-hidden="true"></i>Free margin <b data-field="free_margin">—</b></li>
+        </ul>
+      </section>
+    </div>
+
+    <!-- Full statistics (every backend metric, with notes) -->
+    <section class="card stats" id="statistics" data-views="general performance" aria-labelledby="h-stats">
+      <div class="card-head">
+        <h2 id="h-stats">Performance Statistics</h2>
+        <span class="card-sub" id="perf-note"></span>
+      </div>
+      <div class="stats-grid" id="metrics">
+        <p class="empty">Waiting for deal history…</p>
+      </div>
+    </section>
+
+    <!-- Closed trades -->
+    <section class="card table-card" id="trades" data-views="general trades" aria-labelledby="h-trades">
+      <div class="card-head">
+        <h2 id="h-trades">Closed Trade History <span class="count" id="trades-count"></span></h2>
+        <div class="pager">
+          <button type="button" class="btn" id="trades-prev" disabled>‹ Newer</button>
+          <span id="trades-page"></span>
+          <button type="button" class="btn" id="trades-next" disabled>Older ›</button>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Closed (MYT)</th><th>Symbol</th><th>Type</th><th class="num">Volume</th>
+              <th class="num">Entry</th><th class="num">Exit</th><th class="num">Profit</th>
+              <th class="num">Commission</th><th class="num">Swap</th><th class="num">Net</th><th>Held</th>
+            </tr>
+          </thead>
+          <tbody id="trades-body">
+            <tr><td colspan="11" class="empty">No data yet.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-foot">One row per exit deal. Entry price and holding time come from the
+        position's entry deals; rows marked <span class="tag tag-warn">unpaired</span> had no matching entry in
+        the synced history. Commission includes the entry-side commission, allocated by volume. Net = profit +
+        commission + swap + fee.</p>
+    </section>
+
+    <!-- Sync info -->
+    <section class="card" id="sync" data-views="general sync" aria-labelledby="h-sync">
+      <div class="card-head"><h2 id="h-sync">Synchronization</h2></div>
+      <dl class="sync-grid" id="sync-info">
+        <div><dt>Mode</dt><dd data-sync="mode">—</dd></div>
+        <div><dt>Last account update</dt><dd data-sync="last">—</dd></div>
+        <div><dt>Last history sync</dt><dd data-sync="history">—</dd></div>
+        <div><dt>Polling</dt><dd data-sync="intervals">—</dd></div>
+        <div><dt>Server time offset</dt><dd data-sync="offset">—</dd></div>
+        <div><dt>Access</dt><dd>Read-only · local only</dd></div>
+      </dl>
+    </section>
+
+    <footer class="footer">
+      Read-only personal dashboard. Times shown in Malaysia time (UTC+8). Not financial advice.
+    </footer>
+  </main>
+</div>
+</body>
+</html>
